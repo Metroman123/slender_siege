@@ -1,0 +1,6 @@
+"SlenderSiege"
+{
+    "base"  "vase"
+    "title" "Slender Siege"
+    "maps"  "^"
+}
