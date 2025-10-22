@@ -12,9 +12,15 @@ timer.Simple(0, function()
     print("TEAM_DEFEND:", TEAM_DEFEND, team.GetName(TEAM_DEFEND), team.GetColor(TEAM_DEFEND))
 end)
 
--- Override sandbox's team selection
+-- Override sandbox's team selection - BUT NOT during team select phase
 hook.Add("PlayerInitialSpawn", "SS_AssignTeam", function(ply)
-    -- Give it a moment for player to fully initialize
+    -- DON'T auto-assign during team select - let them choose
+    if SS.State == SS.ROUND_STATE.TEAM_SELECT then
+        print("[SS] Player " .. ply:Nick() .. " joined during team select - waiting for their choice")
+        return
+    end
+    
+    -- Only auto-assign if not in team select
     timer.Simple(0.1, function()
         if not IsValid(ply) then return end
         
@@ -35,6 +41,9 @@ end)
 
 -- Prevent sandbox from changing teams
 hook.Add("PlayerSpawn", "SS_LockTeam", function(ply)
+    -- Don't mess with teams during team select
+    if SS.State == SS.ROUND_STATE.TEAM_SELECT then return end
+    
     -- If on wrong team or unassigned, fix it
     local currentTeam = ply:Team()
     
@@ -55,7 +64,12 @@ end)
 
 -- Block sandbox team changes
 hook.Add("PlayerCanJoinTeam", "SS_BlockTeamChange", function(ply, teamid)
-    -- Only allow our two teams
+    -- Allow team changes during team select
+    if SS.State == SS.ROUND_STATE.TEAM_SELECT then
+        return true
+    end
+    
+    -- Only allow our two teams during game
     if teamid ~= TEAM_COLLECT and teamid ~= TEAM_DEFEND then
         return false
     end

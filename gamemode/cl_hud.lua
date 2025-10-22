@@ -70,3 +70,21 @@ hook.Add("HUDPaint", "SS_TeamDisplay", function()
         Color(0, 0, 0, 160)
     )
 end)
+
+
+-- cl_hud.lua or a new clientside file
+hook.Add("HUDShouldDraw", "SS_HideDefaultHealth", function(name)
+    if name == "CHudHealth" or name == "CHudBattery" then
+        return false  -- prevent the default bars from drawing
+    end
+end)
+
+
+-- Hide the default health and armor HUD
+hook.Add("HUDShouldDraw", "SS_HideDefaultHealth", function(name)
+    if name == "CHudHealth" or name == "CHudBattery" then return false end
+end)
+
+
+
+

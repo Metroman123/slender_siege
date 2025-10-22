@@ -44,7 +44,8 @@ player_manager.RegisterClass("player_slendersiege", {
     for _,wep in ipairs(list) do ply:Give(wep) end
   end,
 
-  SetModel = function(ply)
-    ply:SetModel("models/player/kleiner.mdl")
-  end
+  -- We intentionally do not override SetModel here.
+  -- Models are assigned in GM:PlayerSpawn to avoid a recursive
+  -- call stack when calling ply:SetModel from within a class method.
+  -- See init.lua for the model assignment logic.
 }, "player_default")
