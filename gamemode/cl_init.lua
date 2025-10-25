@@ -127,5 +127,61 @@ hook.Add("PostDrawTranslucentRenderables", "SS_DrawPageSprites", function()
 end)
 
 
+hook.Add("Think", "SS_TeamVoiceKey", function()
+    if input.IsKeyDown(KEY_Z) then
+        net.Start("SS_TeamVoice")
+        net.WriteBool(true)
+        net.SendToServer()
+    else
+        net.Start("SS_TeamVoice")
+        net.WriteBool(false)
+        net.SendToServer()
+    end
+end)
+
+
+
+-- ============================================================
+--  TEAM VOICE INDICATOR (shows when holding Z for team voice)
+-- ============================================================
+local teamVoiceActive = false
+local lastVoiceState = false
+local fadeAlpha = 0
+
+-- Receive team voice state back from server (optional feedback)
+net.Receive("SS_TeamVoice", function()
+    teamVoiceActive = net.ReadBool()
+end)
+
+hook.Add("Think", "SS_TeamVoice_Update", function()
+    local newState = input.IsKeyDown(KEY_Z)
+    if newState ~= lastVoiceState then
+        lastVoiceState = newState
+        teamVoiceActive = newState
+    end
+end)
+
+hook.Add("HUDPaint", "SS_DrawTeamVoiceIndicator", function()
+    if not teamVoiceActive then
+        fadeAlpha = Lerp(FrameTime() * 8, fadeAlpha, 0)
+    else
+        fadeAlpha = Lerp(FrameTime() * 8, fadeAlpha, 255)
+    end
+
+    if fadeAlpha < 5 then return end
+
+    local ply = LocalPlayer()
+    if not IsValid(ply) then return end
+
+    local teamColor = team.GetColor(ply:Team()) or Color(200,200,200)
+    local w, h = 200, 40
+    local x, y = ScrW() / 2 - w / 2, ScrH() - h - 120
+
+    draw.RoundedBox(8, x, y, w, h, Color(teamColor.r, teamColor.g, teamColor.b, math.Clamp(fadeAlpha,0,180)))
+    draw.SimpleText("TEAM VOICE ACTIVE", "Trebuchet24",
+        x + w/2, y + h/2, Color(255,255,255,fadeAlpha),
+        TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+end)
+
 
 

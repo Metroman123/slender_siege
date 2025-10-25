@@ -1,3 +1,4 @@
+
 -- Team-specific spawn point selection
 function GM:PlayerSelectTeamSpawn(teamid, ply)
     local spawnClass = "info_player_start" -- Fallback
@@ -28,6 +29,8 @@ AddCSLuaFile("cl_init.lua")
 AddCSLuaFile("cl_hud.lua")
 AddCSLuaFile("cl_stealth.lua")
 AddCSLuaFile("cl_teamselect.lua")
+AddCSLuaFile("sv_itemspawner.lua")
+
 
 -- Mount the Workshop addons containing our custom playermodels.  These
 -- calls run only on the server and make sure that clients download
@@ -56,6 +59,7 @@ if SERVER then
     }
 end
 include("shared.lua")
+
 
 --==============================================
 -- REGISTER SLENDER_PAGE ENTITY INLINE
@@ -120,8 +124,12 @@ print("[SS] Registered slender_page entity!")
 --==============================================
 -- Team Logic
 --==============================================
+-- Run shared and server-side logic
+include("shared.lua")
 include("sv_teamlogic.lua")
 include("sv_voice.lua")
+include("sv_loadouts.lua") -- loadout hook runs on server
+include("sv_itemspawner.lua")
 
 function GM:Initialize()
   SS.State = SS.ROUND_STATE.TEAM_SELECT
@@ -580,3 +588,24 @@ concommand.Add("ss_skipteamselect", function(ply)
     print("[SS] Skipping team select...")
   end
 end)
+
+util.AddNetworkString("SS_TeamVoice")
+
+local playerVoiceTeam = {}
+
+net.Receive("SS_TeamVoice", function(len, ply)
+    local talking = net.ReadBool()
+    playerVoiceTeam[ply] = talking
+end)
+
+hook.Add("PlayerCanHearPlayersVoice", "SS_TeamOnlyVoice", function(listener, talker)
+    if playerVoiceTeam[talker] then
+        -- Only teammates hear the voice
+        return listener:Team() == talker:Team(), true
+    end
+    -- Normal voice behavior otherwise
+    return true, true
+end)
+
+
+
