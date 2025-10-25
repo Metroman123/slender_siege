@@ -1,51 +1,37 @@
+SS = SS or {}
+SS.Loadouts = SS.Loadouts or {}
+
+
+
 -------------------------------------------------
--- Force correct team names after respawn
+-- Team loadouts (TFA-only weapons verified)
 -------------------------------------------------
-hook.Add("PlayerLoadout", "SS_EnsureTeamConsistency", function(ply)
-    -- If player somehow got default team 0, reassign them
-    if ply:Team() == 0 or not team.GetName(ply:Team()) then
-        local collectors = team.NumPlayers(TEAM_COLLECT)
-        local defenders  = team.NumPlayers(TEAM_DEFEND)
+SS.Loadouts[TEAM_COLLECT] = {
+    Fixed = {
+        "tfa_yonglicustom_matelbat",  -- melee
+        "tfa_ins2_wpn_m1911colt"      -- pistol
+    },
+    Random = {
+        "tfa_ins2_wpn_coltm4a1",      -- rifle
+        "tfa_ins2_wpn_hkump45",       -- SMG
+        "tfa_ins2_wpn_mk18cqbr",      -- carbine
+        "tfa_ins2_wpn_m40a1",         -- sniper
+        "tfa_ins2_wpn_m45a1",         -- pistol variant
+        "tfa_ins2_wpn_rpg7"           -- heavy
+    }
+}
 
-        if collectors <= defenders then
-            ply:SetTeam(TEAM_COLLECT)
-        else
-            ply:SetTeam(TEAM_DEFEND)
-        end
-    end
+SS.Loadouts[TEAM_DEFEND] = {
+    Fixed = {
+        "tfa_melee_stunstick",        -- melee
+        "tfa_ins2_wpn_berettam9"      -- sidearm
+    },
+    Random = {
+        "tfa_ins2_wpn_imigalilsar",   -- galil SAR
+        "tfa_ins2_wpn_ak74izh",       -- assault rifle
+        "tfa_ins2_wpn_sksimonov",     -- semi-auto rifle
+        "tfa_ins2_wpn_l1a1",          -- battle rifle
+        "tfa_ins2_wpn_at4"            -- heavy launcher
+    }
+}
 
-    -- Safety: make sure team color/name stays correct
-    local teamName = team.GetName(ply:Team())
-    if not teamName or teamName == "" then
-        ply:SetTeam(TEAM_COLLECT)
-    end
-end)
-
-
-
-
-player_manager.RegisterClass("player_slendersiege", {
-  DisplayName   = "Slender Siege Default",
-  WalkSpeed     = 200,
-  RunSpeed      = 320,
-  DuckSpeed     = 0.3,
-  UnDuckSpeed   = 0.3,
-  CrouchedWalkSpeed = 0.4,
-  JumpPower     = 180,
-  CanUseFlashlight = true,
-  AvoidPlayers  = true,
-  TeammateNoCollide = true,
-
-  Loadout = function(ply)
-    if not IsValid(ply) then return end
-    ply:StripWeapons()
-    local t = ply:Team()
-    local list = (t == TEAM_COLLECT) and SS.Loadout.collector or SS.Loadout.defender
-    for _,wep in ipairs(list) do ply:Give(wep) end
-  end,
-
-  -- We intentionally do not override SetModel here.
-  -- Models are assigned in GM:PlayerSpawn to avoid a recursive
-  -- call stack when calling ply:SetModel from within a class method.
-  -- See init.lua for the model assignment logic.
-}, "player_default")
