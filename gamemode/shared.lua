@@ -83,3 +83,6 @@ function GM:PlayerSpawn(ply)
     ply:SetupHands()  -- ✅ this enables c_hands for the player
 end
 
+TEAM_SLENDER = 3
+team.SetUp(TEAM_SLENDER, "Slender", Color(255, 255, 255), false)
+

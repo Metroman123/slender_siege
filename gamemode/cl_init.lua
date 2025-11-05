@@ -4,6 +4,7 @@ include("cl_stealth.lua")
 include("cl_teamselect.lua")
 include("cl_topbar.lua")
 
+
 -- FORCE client-side team setup (in case it didn't sync from shared.lua)
 TEAM_COLLECT = 1
 TEAM_DEFEND = 2

@@ -2,6 +2,16 @@ SS = SS or {}
 SS.ClientHidden = false
 SS._hideLerp = 0
 
+--[[
+  Track the last time the local player fired a weapon. When a shot is
+  fired we briefly suppress stealth so that players cannot remain
+  hidden while shooting. The variable `lastShot` stores the timestamp
+  of the most recent shot and is consulted when determining whether
+  the player should be hidden. A value of 0 indicates no shots have
+  been fired recently.
+--]]
+local lastShot = 0
+
 local lightCacheT, lightCacheVal = 0, 1
 
 local function GetAmbientLight()
@@ -15,13 +25,10 @@ local function GetAmbientLight()
 end
 
 local function IsPlayerStillOrCrouched(ply)
-  local maxSpd = GetConVar("ss_hide_maxspeed"):GetFloat()
-  local vel2d = ply:GetVelocity():Length2D()
-  if vel2d <= maxSpd then return true end
-  if GetConVar("ss_hide_crouchbonus"):GetBool() and ply:Crouching() and vel2d <= (maxSpd * 1.6) then
-    return true
-  end
-  return false
+  -- Updated stealth requirement: players must be crouching to be
+  -- considered for stealth. We intentionally drop the speed check
+  -- from the original implementation to simplify the hiding logic.
+  return ply:Crouching()
 end
 
 hook.Add("Think", "SS_UpdateHiddenState", function()
@@ -31,8 +38,16 @@ hook.Add("Think", "SS_UpdateHiddenState", function()
     SS._hideLerp = 0
     return
   end
-  local wantHidden = SS:IsDarkEnough(GetAmbientLight()) and IsPlayerStillOrCrouched(ply)
-  local target = wantHidden and 1 or 0
+  -- Determine whether the player should be hidden based on crouching,
+  -- ambient light level and recent shooting activity.  Players only
+  -- hide if they are crouching in sufficiently dark conditions and
+  -- have not fired a weapon within the last second.  The `lastShot`
+  -- variable is updated elsewhere via the EntityFireBullets hook.
+  local darkEnough = SS:IsDarkEnough(GetAmbientLight())
+  local crouching  = IsPlayerStillOrCrouched(ply)
+  local sinceShot  = CurTime() - (lastShot or 0)
+  local canHide    = darkEnough and crouching and sinceShot > 1.0
+  local target = canHide and 1 or 0
   SS._hideLerp = Lerp(FrameTime() * 4, SS._hideLerp, target)
   SS.ClientHidden = (SS._hideLerp > 0.02)
 end)
@@ -45,6 +60,27 @@ hook.Add("Think", "SS_SendHiddenPing", function()
   net.Start("SS_HiddenPing")
     net.WriteBool(SS.ClientHidden)
   net.SendToServer()
+end)
+
+--[[
+  Whenever the local player fires a weapon this hook records the time of
+  the shot and immediately forces the player out of stealth.  The
+  subsequent Think cycle will decide when the player can return to
+  stealth based on crouching and ambient lighting.
+--]]
+hook.Add("EntityFireBullets", "SS_UnhideOnShoot", function(ent, data)
+  if ent ~= LocalPlayer() then return end
+  lastShot = CurTime()
+  -- If we were hidden at the moment of firing, cancel hide state and
+  -- notify the server immediately.  We reset _hideLerp to zero so
+  -- the transition back into stealth is smooth.
+  if SS.ClientHidden then
+    SS.ClientHidden = false
+    SS._hideLerp = 0
+    net.Start("SS_HiddenPing")
+      net.WriteBool(false)
+    net.SendToServer()
+  end
 end)
 
 -- Visual effect
@@ -82,12 +118,4 @@ hook.Add("PreDrawHalos", "SS_HiddenTeammateHalo", function()
   end
 end)
 
--- Optional HUD cue
-hook.Add("HUDPaint", "SS_HiddenHint", function()
-  local f = SS._hideLerp or 0
-  if f <= 0.05 then return end
-  local a = 180 * f
-  surface.SetDrawColor(0, 0, 0, a)
-  surface.DrawRect(20, ScrH() - 36, 72, 16)
-  draw.SimpleText("HIDDEN", "Trebuchet18", 56, ScrH() - 28, Color(200, 255, 200, a + 30), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
-end)
+
