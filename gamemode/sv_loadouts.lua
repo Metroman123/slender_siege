@@ -8,14 +8,13 @@ SS.Loadouts = SS.Loadouts or {}
 -- Use the correct constants TEAM_COLLECT and TEAM_DEFEND
 SS.Loadouts[TEAM_COLLECT] = {
     Fixed = {
-        "tfa_ins2_wpn_m1911colt",      -- always given
-        "tfa_ins2_wpn_makarovpistol",
-        "tfa_melee_crowbar"
+        "tfa_ins2_wpn_m1911colt",      -- always given,
+        "tfa_melee_crowbar",
+        "p_fists",
     },
     Random = {
         "tfa_ins2_wpn_imigalilsar",
         "tfa_ins2_wpn_hkump45",
-        "tfa_ins2_wpn_m45a1",
         "tfa_ins2_wpn_coltm4a1",
         "tfa_ins2_wpn_mossberg590"
     }
@@ -24,7 +23,8 @@ SS.Loadouts[TEAM_COLLECT] = {
 SS.Loadouts[TEAM_DEFEND] = {
     Fixed = {
         "tfa_ins2_wpn_berettam9",      -- always given
-        "tfa_melee_pipe"
+        "tfa_yonglicustom_bat",
+        "p_fists",
     },
     Random = {
         "tfa_ins2_wpn_m40a1",

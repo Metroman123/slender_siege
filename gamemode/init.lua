@@ -23,6 +23,8 @@ function GM:PlayerSelectTeamSpawn(teamid, ply)
     return nil
 end
 
+
+
 -- Distribute client files
 AddCSLuaFile("shared.lua")
 AddCSLuaFile("cl_init.lua")
@@ -30,8 +32,7 @@ AddCSLuaFile("cl_hud.lua")
 AddCSLuaFile("cl_stealth.lua")
 AddCSLuaFile("cl_teamselect.lua")
 AddCSLuaFile("sv_itemspawner.lua")
-
-
+AddCSLuaFile("sv_roundsounds.lua")
 -- Mount the Workshop addons containing our custom playermodels.  These
 -- calls run only on the server and make sure that clients download
 -- the workshop content before joining.  Replace the placeholder IDs
@@ -130,6 +131,7 @@ include("sv_teamlogic.lua")
 include("sv_voice.lua")
 include("sv_loadouts.lua") -- loadout hook runs on server
 include("sv_itemspawner.lua")
+include("sv_slenderbot.lua")
 
 function GM:Initialize()
   SS.State = SS.ROUND_STATE.TEAM_SELECT
@@ -261,6 +263,8 @@ local function SS_BeginRound()
   SS.State = SS.ROUND_STATE.LIVE
   SS.RoundEndTime = CurTime() + GetConVar("ss_round_time"):GetInt()
   SS.PageCount = 0
+  hook.Run("SS_BeginRound")
+
 
   print("[SS] Round starting!")
   
@@ -608,4 +612,66 @@ hook.Add("PlayerCanHearPlayersVoice", "SS_TeamOnlyVoice", function(listener, tal
 end)
 
 
+--==============================================
+-- SLENDER TEAM SUPPORT
+--==============================================
+
+-- Spawn a Slender nextbot for the hidden team
+local function SS_SpawnSlender()
+    if #ents.FindByClass("npc_slender") > 0 then return end -- prevent duplicates
+
+    local slend = ents.Create("npc_slender")
+    if not IsValid(slend) then
+        print("[SS] Failed to spawn Slender entity!")
+        return
+    end
+
+    -- Assign hidden team and basic properties
+    slend:SetTeam(TEAM_SLENDER)
+    slend:SetNWInt("SS_ActualTeam", TEAM_SLENDER)
+    slend:SetModel("models/player/skeleton.mdl")
+    slend:SetPos(Vector(0, 0, 100))
+    slend:Spawn()
+
+    print("[SS] Slender spawned and assigned to hidden team.")
+end
+
+-- Hook into the round start to auto-spawn Slender
+hook.Add("SS_RoundStart", "SpawnSlenderBot", function()
+    timer.Simple(2, SS_SpawnSlender)
+end)
+
+
+--==============================================
+-- MAP ROTATION SYSTEM
+--==============================================
+
+
+
+
+local currentMapIndex = 1
+local roundsPerMap = 25 -- change to however many rounds per map
+
+if SERVER then
+    local completedRounds = 0
+
+    hook.Add("SS_RoundEnd", "SS_MapCycleCheck", function()
+        completedRounds = completedRounds + 1
+        print("[SS] Round complete! (" .. completedRounds .. "/" .. roundsPerMap .. ")")
+
+        if completedRounds >= roundsPerMap then
+            completedRounds = 0
+            currentMapIndex = currentMapIndex + 1
+            if currentMapIndex > #mapCycle then currentMapIndex = 1 end
+
+            local nextMap = mapCycle[currentMapIndex]
+            print("[SS] Changing map to: " .. nextMap)
+            timer.Simple(10, function()
+                RunConsoleCommand("changelevel", nextMap)
+            end)
+        end
+    end)
+end
+
+CreateConVar("ss_target_pages", 10, {FCVAR_ARCHIVE, FCVAR_NOTIFY}, "Number of pages to spawn per round")
 
